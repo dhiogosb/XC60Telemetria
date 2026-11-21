@@ -27,20 +27,75 @@ class Elm327(private val transport: ObdTransport) {
         private set
 
     suspend fun initialize() {
+        // "Acorda" o ELM: clones às vezes ignoram o primeiro comando depois de conectar.
+        transport.write("\r".toByteArray(Charsets.US_ASCII))
+        delay(400)
         transport.drain()
-        version = clean(sendRaw("ATZ", 4000))
+
+        version = reset()
+        ConnLog.add("Adaptador: $version")
         delay(300)
-        for (cmd in listOf("ATE0", "ATL0", "ATS0", "ATH1", "ATAT1", "ATSP6", "ATCAF1")) {
-            val r = clean(sendRaw(cmd))
-            if (!r.contains("OK")) throw IllegalStateException("ELM327 recusou $cmd: '$r'")
+
+        // Essenciais: sem eles a leitura não funciona.
+        for (cmd in listOf("ATE0", "ATH1", "ATSP6")) {
+            val r = clean(logged(cmd, 3000))
+            if (!r.contains("OK")) throw IllegalStateException("O adaptador recusou $cmd ('$r').")
+        }
+        // Opcionais: alguns clones não conhecem e respondem '?', o que não atrapalha.
+        for (cmd in listOf("ATL0", "ATS0", "ATAT1", "ATCAF1")) {
+            try { logged(cmd, 2000) } catch (e: ObdTimeoutException) { ConnLog.add("$cmd sem resposta (ignorado)") }
         }
         currentHeader = -1
         setHeader(ECM)
-        // Primeira requisição força o ELM a sincronizar com o barramento.
-        val probe = request(ECM, "0100", 5000)
-        if (probe !is ObdResult.Ok) {
-            throw IllegalStateException("Sem comunicação com a central do motor. Ignição ligada?")
+        // Primeira requisição força o ELM a sincronizar com o barramento. Tenta duas vezes.
+        var probe: ObdResult = ObdResult.NoData
+        repeat(2) {
+            probe = request(ECM, "0100", 8000)
+            ConnLog.add("0100 → $probe")
+            if (probe is ObdResult.Ok) return
+            delay(500)
         }
+        val why = when (val p = probe) {
+            is ObdResult.Error -> p.message
+            is ObdResult.NoData -> "NO DATA"
+            else -> p.toString()
+        }
+        throw IllegalStateException(
+            "O adaptador respondeu, mas a central do motor não ($why). A ignição está ligada?"
+        )
+    }
+
+    /** ATZ com alternativas: clones lentos às vezes não respondem ao primeiro reset. */
+    private suspend fun reset(): String {
+        val attempts = listOf("ATZ" to 5000L, "ATWS" to 4000L, "ATI" to 3000L, "ATZ" to 6000L)
+        for ((cmd, timeout) in attempts) {
+            try {
+                val r = clean(logged(cmd, timeout))
+                if (r.isNotEmpty()) return VERSION.find(r)?.value ?: r
+            } catch (e: ObdTimeoutException) {
+                // Alguns clones mandam a versão mas esquecem o '>'.
+                if (e.partial.contains("ELM", ignoreCase = true)) {
+                    ConnLog.add("$cmd: resposta sem '>' (${clean(e.partial)})")
+                    transport.drain()
+                    return clean(e.partial)
+                }
+                ConnLog.add("$cmd: sem resposta em ${timeout}ms")
+                transport.write("\r".toByteArray(Charsets.US_ASCII))
+                delay(500)
+                transport.drain()
+            }
+        }
+        throw IllegalStateException(
+            "O Bluetooth conectou, mas o adaptador não respondeu. Confira se ele está bem encaixado " +
+                "na porta OBD (luz acesa), se nenhum outro app (Torque, Car Scanner) está usando ele " +
+                "e tente tirar e pôr de novo na porta."
+        )
+    }
+
+    private suspend fun logged(cmd: String, timeoutMs: Long): String {
+        val r = sendRaw(cmd, timeoutMs)
+        ConnLog.add("$cmd → ${clean(r).ifEmpty { "(vazio)" }}")
+        return r
     }
 
     /** Envia texto cru e devolve a resposta até o '>'. */
@@ -104,6 +159,7 @@ class Elm327(private val transport: ObdTransport) {
             "STOPPED", "BUS ERROR", "DATA ERROR", "FB ERROR", "?"
         )
         private val HEX_LINE = Regex("^[0-9A-F]+$")
+        private val VERSION = Regex("ELM\\d+\\s*v?[0-9.]+", RegexOption.IGNORE_CASE)
 
         private fun clean(s: String) = s.replace("\r", " ").replace("\n", " ").trim()
 

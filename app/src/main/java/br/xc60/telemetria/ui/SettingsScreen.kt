@@ -20,6 +20,8 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -133,6 +135,17 @@ fun SettingsScreen(state: TelemetryState, settings: Settings) {
             }
             SwitchRow("Gravar viagem em CSV", csv) { csv = it; settings.logCsv = it }
             Text("Mudanças nestas opções valem ao reconectar.", color = Muted, fontSize = 12.sp)
+
+            SectionTitle("Registro da conexão", 20.sp)
+            Text(
+                "Se não conectar, tire um print desta parte: mostra onde o adaptador parou de responder.",
+                color = Muted, fontSize = 12.sp,
+            )
+            val log by br.xc60.telemetria.obd.ConnLog.lines.collectAsState()
+            if (log.isEmpty()) Text("—", color = Muted, fontSize = 12.sp)
+            log.takeLast(14).forEach {
+                Text(it, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Muted)
+            }
         }
     }
 }

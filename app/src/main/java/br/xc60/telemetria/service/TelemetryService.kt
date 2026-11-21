@@ -14,6 +14,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import br.xc60.telemetria.obd.BluetoothSppTransport
+import br.xc60.telemetria.obd.ConnLog
 import br.xc60.telemetria.obd.Elm327
 import br.xc60.telemetria.obd.ObdTransport
 import br.xc60.telemetria.obd.SimulatedTransport
@@ -59,15 +60,22 @@ class TelemetryService : Service() {
             return
         }
         val adapter = (getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?)?.adapter
+        ConnLog.clear()
+        var attempt = 0
         while (true) {
+            // A cada tentativa começa por uma forma de conexão diferente (clones variam).
             val transport: ObdTransport =
                 if (demo) SimulatedTransport()
                 else BluetoothSppTransport(
-                    adapter?.getRemoteDevice(address!!) ?: error("Este aparelho não tem Bluetooth")
+                    adapter?.getRemoteDevice(address!!) ?: error("Este aparelho não tem Bluetooth"),
+                    firstStrategy = attempt % BluetoothSppTransport.STRATEGIES,
                 )
+            attempt++
             try {
                 Telemetry.state.update { it.copy(conn = ConnState.CONNECTING, message = "") }
+                ConnLog.add("Tentativa $attempt: conectando…")
                 transport.connect()
+                if (transport is BluetoothSppTransport) ConnLog.add("Bluetooth conectado (${transport.strategyName})")
                 val engine = TelemetryEngine(this, Elm327(transport), settings)
                 Telemetry.engine = engine
                 engine.run()
@@ -75,6 +83,7 @@ class TelemetryService : Service() {
                 transport.close()
                 throw e
             } catch (e: Exception) {
+                ConnLog.add("Erro: ${e.message ?: e.javaClass.simpleName}")
                 Telemetry.state.update {
                     it.copy(conn = ConnState.ERROR, message = e.message ?: e.javaClass.simpleName)
                 }
