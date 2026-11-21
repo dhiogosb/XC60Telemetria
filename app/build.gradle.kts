@@ -21,8 +21,8 @@ android {
         minSdk = 26
         targetSdk = 35
         // A cada release: aumente versionCode e versionName, e publique a tag v<versionName>.
-        versionCode = 8
-        versionName = "0.5.3"
+        versionCode = 9
+        versionName = "0.5.4"
     }
 
     signingConfigs {

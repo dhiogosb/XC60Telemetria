@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,8 +95,12 @@ fun UpdateBanner() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val st by UpdateController.state.collectAsStateWithLifecycle()
-    val speed = Telemetry.state.collectAsStateWithLifecycle().value.values["speed"] ?: 0.0
-    val moving = speed > 3
+    val tel = Telemetry.state.collectAsStateWithLifecycle().value
+    val demo = remember { br.xc60.telemetria.service.Settings(context).demoMode }
+    // Só vale a velocidade lida agora do carro real: a última leitura fica guardada depois que a
+    // conexão cai, e no modo demonstração o "carro" simulado está sempre andando.
+    val moving = !demo && tel.conn == br.xc60.telemetria.service.ConnState.CONNECTED &&
+        (tel.values["speed"] ?: 0.0) > 3
 
     val (text, action, onAction) = when (val s = st) {
         is UpdateState.Available -> {
