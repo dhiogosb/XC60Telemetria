@@ -1,0 +1,16 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+
+# Chave e senha de assinatura: NUNCA versionar
+signing/
+*.jks
+*.keystore
+
+# Artefatos gerados
+dist/
+prints/
+*.apk
