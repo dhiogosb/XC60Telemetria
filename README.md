@@ -22,8 +22,8 @@ App Android (Kotlin + Jetpack Compose) que transforma um tablet ou celular em co
 |---|---|
 | **Início** | Mostradores de velocidade e rotação, barras de turbo, água, óleo, bateria e tanque, computador de bordo, música tocando e atalhos de navegação. |
 | | Em tela dividida com Waze ou Google Maps, muda sozinho para uma versão vertical compacta. |
-| **Mídia** | Escolha da fonte (Spotify, YouTube Music, Deezer, YouTube). Mostra música, artista, capa e progresso, com controles. |
-| | Para mostrar a música, é preciso liberar "Acesso a notificações" uma vez. O app só lê o que está tocando. |
+| **Mídia** | Escolha da fonte (Spotify, YouTube Music, Deezer, YouTube) e controles (tocar/pausar, faixa, volume). |
+| | Não mostra nome nem capa da música: isso exigiria "acesso às notificações", e o Play Protect bloqueia no Brasil a instalação fora da loja de apps que pedem esse acesso. |
 | **Conforto** | Clima (motorista/passageiro), vidros, teto solar, cortina, travas e porta-malas. **Funciona apenas no modo demonstração** (veja Segurança). |
 | **Diagnóstico** | Sensores: todos os PIDs que a central suporta. |
 | | Falhas: lê motor e câmbio e apaga as falhas do motor, com confirmação. |
@@ -103,7 +103,7 @@ app/src/main/java/br/xc60/telemetria/
 
 ## Próximos passos sugeridos
 
-- **Capa e nome da música:** precisa da permissão de *acesso a notificações* (`MediaSessionManager`).
+- **Capa e nome da música:** só se o app for publicado na Play Store, onde o acesso às notificações não bloqueia a instalação.
 - **Adaptador BLE** (vLinker BM, OBDLink CX): criar uma segunda implementação de `ObdTransport`.
 - **Sensores Volvo confirmados** (`VolvoPids.kt`), depois da descoberta pela varredura.
 - **Modo "abrir ao ligar o carro":** iniciar o app quando o Bluetooth do carro conectar.

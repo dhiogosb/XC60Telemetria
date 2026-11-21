@@ -272,7 +272,7 @@ private fun MiniPlayer(np: NowPlaying?, media: MediaControls, settings: Settings
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(np?.title?.ifEmpty { null } ?: "Nada tocando", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(np?.title?.ifEmpty { null } ?: if (np?.playing == true) "Tocando agora" else "Nada tocando", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(np?.artist?.ifEmpty { null } ?: (np?.app?.label ?: "Toque em Mídia"), color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         RoundButton(Icons.Filled.SkipPrevious, "Anterior", 36.dp) { media.previous() }

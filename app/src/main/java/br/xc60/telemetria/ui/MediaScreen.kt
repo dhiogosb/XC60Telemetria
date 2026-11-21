@@ -83,8 +83,6 @@ fun MediaScreen(settings: Settings, media: MediaControls) {
     val context = LocalContext.current
     val np = rememberNowPlaying(settings)
     var selected by remember { mutableStateOf(settings.musicApp) }
-    var hasAccess by remember { mutableStateOf(MediaSessions.hasAccess(context)) }
-    LaunchedEffect(Unit) { while (isActive) { hasAccess = MediaSessions.hasAccess(context); delay(2000) } }
     media.preferredPkg = selected
 
     var nav by remember { mutableStateOf(settings.navApp) }
@@ -106,7 +104,7 @@ fun MediaScreen(settings: Settings, media: MediaControls) {
             wide -> Row(Modifier.fillMaxSize().padding(24.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 NowPlayingCard(np, media, Modifier.weight(1.4f).fillMaxHeight())
                 Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    AppPicker(context, selected, hasAccess) { pickMusic(it) }
+                    AppPicker(context, selected) { pickMusic(it) }
                     Spacer(Modifier.height(4.dp))
                     Eyebrow("Navegação · abre ao lado")
                     AppChips(context, ExternalApp.nav, nav, pickNav)
@@ -119,7 +117,6 @@ fun MediaScreen(settings: Settings, media: MediaControls) {
                     AppChips(context, ExternalApp.music, selected, pickMusic, columns = 2)
                     Eyebrow("Navegação")
                     AppChips(context, ExternalApp.nav, nav, pickNav)
-                    if (!hasAccess) AccessBanner(context)
                 }
             }
             else -> Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -128,7 +125,6 @@ fun MediaScreen(settings: Settings, media: MediaControls) {
                 AppChips(context, ExternalApp.music, selected, pickMusic, columns = 2)
                 Eyebrow("Navegação · abre ao lado")
                 AppChips(context, ExternalApp.nav, nav, pickNav)
-                if (!hasAccess) AccessBanner(context)
             }
         }
     }
@@ -169,16 +165,7 @@ private fun AppChip(context: Context, app: ExternalApp, selected: Boolean, modif
 }
 
 @Composable
-private fun AccessBanner(context: Context) {
-    Text(
-        "Toque aqui para mostrar nome e capa da música",
-        color = Accent, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.clickable { MediaSessions.requestAccess(context) }.padding(vertical = 4.dp),
-    )
-}
-
-@Composable
-private fun AppPicker(context: Context, selected: String, hasAccess: Boolean, onSelect: (ExternalApp) -> Unit) {
+private fun AppPicker(context: Context, selected: String, onSelect: (ExternalApp) -> Unit) {
     SectionTitle("Fonte de música", 22.sp)
     Text("Escolha o app. O som vai para a multimídia do carro pelo Bluetooth.", color = Muted, fontSize = 13.sp)
     Spacer(Modifier.height(16.dp))
@@ -188,19 +175,6 @@ private fun AppPicker(context: Context, selected: String, hasAccess: Boolean, on
             AppLauncher.open(context, app, sideBySide = false)
         }
         Spacer(Modifier.height(10.dp))
-    }
-    Spacer(Modifier.height(12.dp))
-    if (!hasAccess) {
-        Card(onClick = { MediaSessions.requestAccess(context) }) {
-            Eyebrow("Recomendado", Accent)
-            Spacer(Modifier.height(6.dp))
-            Text("Mostrar música e capa do álbum", fontSize = 16.sp)
-            Text(
-                "Toque para liberar o acesso às sessões de mídia (em \"Acesso a notificações\"). " +
-                    "O app só lê o que está tocando, nunca o conteúdo das suas notificações.",
-                color = Muted, fontSize = 13.sp,
-            )
-        }
     }
 }
 
@@ -276,12 +250,12 @@ fun NowPlayingCard(np: NowPlaying?, media: MediaControls, modifier: Modifier = M
                 Spacer(Modifier.width(if (compact) 16.dp else 28.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        np?.title?.ifEmpty { null } ?: "Nada tocando",
+                        np?.title?.ifEmpty { null } ?: if (np?.playing == true) "Tocando agora" else "Nada tocando",
                         fontSize = if (compact) 18.sp else 30.sp, fontWeight = FontWeight.Light,
                         maxLines = 2, overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        np?.artist?.ifEmpty { null } ?: "Escolha uma fonte de música",
+                        np?.artist?.ifEmpty { null } ?: np?.app?.label ?: "Escolha uma fonte de música",
                         color = Muted, fontSize = if (compact) 13.sp else 17.sp,
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )

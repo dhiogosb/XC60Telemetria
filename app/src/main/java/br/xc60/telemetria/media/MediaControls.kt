@@ -7,28 +7,19 @@ import android.os.SystemClock
 import android.view.KeyEvent
 
 /**
- * Controle do player. Com acesso às sessões de mídia, comanda o app certo direto
- * (Spotify, YouTube Music, Deezer…); sem acesso, usa as teclas de mídia do sistema.
+ * Controle do player pelas teclas de mídia do sistema: o Android entrega o comando ao app
+ * que está tocando (Spotify, YouTube Music, Deezer…). Não precisa de nenhuma permissão especial.
  * O som vai para a multimídia do XC60 pelo A2DP, que o Android gerencia sozinho.
  */
-class MediaControls(private val context: Context) {
+class MediaControls(context: Context) {
     private val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
     var preferredPkg: String? = null
 
-    private fun session() = MediaSessions.active(context, preferredPkg)?.transportControls
-
-    fun playPause(playing: Boolean) {
-        val s = session()
-        when {
-            s == null -> key(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-            playing -> s.pause()
-            else -> s.play()
-        }
-    }
-
-    fun next() = session()?.skipToNext() ?: key(KeyEvent.KEYCODE_MEDIA_NEXT)
-    fun previous() = session()?.skipToPrevious() ?: key(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+    @Suppress("UNUSED_PARAMETER")
+    fun playPause(playing: Boolean) = key(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+    fun next() = key(KeyEvent.KEYCODE_MEDIA_NEXT)
+    fun previous() = key(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
 
     fun volumeUp() = audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
     fun volumeDown() = audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)

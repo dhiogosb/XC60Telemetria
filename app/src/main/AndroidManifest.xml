@@ -49,17 +49,6 @@
             android:name=".service.TelemetryService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
-
-        <!-- Só para ler "o que está tocando" (título, capa) e controlar o player certo -->
-        <service
-            android:name=".media.MediaAccessService"
-            android:exported="false"
-            android:label="XC60 Telemetria — música"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.updates"
